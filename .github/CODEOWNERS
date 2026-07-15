@@ -1,0 +1,11 @@
+# Replace @sar15 with a domain team when the repository adds one.
+* @sar15
+
+# Finance and access boundaries require domain review.
+/supabase/migrations/ @sar15
+/firmos-backend/api/deps.py @sar15
+/firmos-backend/core/security.py @sar15
+/firmos-backend/core/finance_actions/ @sar15
+/firmos-backend/connectors/ @sar15
+/apps/firmos-agent/ @sar15
+/firmos-backend/engines/ @sar15

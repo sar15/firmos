@@ -1,0 +1,115 @@
+name: Repository checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firmos-backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check . --select E9,F63,F7,F82
+      - run: ruff format --check core/agent_experience.py api/routes/agent_tools.py api/routes/agent_bank_tools.py api/routes/workflows.py extraction/shared.py api/main.py
+      - run: mypy core/agent_experience.py core/feature_flags.py api/routes/agent_tools.py api/routes/workflows.py --ignore-missing-imports --follow-imports=skip
+      - run: pytest --collect-only
+      - run: pytest
+      - name: Certified connector simulators
+        run: pytest -q tests/test_zoho_v1_certification.py tests/test_tally_agent_v1.py tests/test_tally_write_engine.py
+      - run: python3 scripts/check_openapi_contract.py
+      - run: bash ../scripts/ci/no_duplicate_abstractions.sh
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+      - run: bash ../scripts/ci/check_source_size.sh
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  browser:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run test:e2e
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: bash scripts/ci/no_remote_database_credentials.sh
+      # v2.3.9 pinned: security scanners must not float to mutable tags.
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+        working-directory: apps/web
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: apps/web
+      # v0.36.0 pinned to the audited release commit.
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: supabase/postgres:15.14.1.143
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: bash scripts/ci/verify_migrations.sh postgresql://postgres:postgres@localhost:5432/postgres
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install asyncpg
+      - run: python firmos-backend/scripts/check_rls.py postgresql://postgres:postgres@localhost:5432/firmos_migration_fresh

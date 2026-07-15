@@ -1,0 +1,36 @@
+node_modules/
+.venv/
+venv*/
+__pycache__/
+.next/
+*.egg-info/
+.DS_Store
+.env
+**/.env
+**/.env.*
+!**/.env.example
+*.log
+.coverage
+.pytest_cache/
+htmlcov/
+coverage/
+test-results/
+playwright-report/
+uploads/
+tmp/
+temporary-extractions/
+graphify-out/
+.codebase-memory/
+curl_out*.json
+all_code.txt
+all_docs.txt
+
+# Local orchestration state and nested repositories are not product source.
+.agents/
+agent-skills/
+ORIGINAL_REQUEST.md
+
+# Supabase CLI state and a legacy local-only seed helper must never be published.
+supabase/.temp/
+supabase/.branches/
+supabase/seed_script.py

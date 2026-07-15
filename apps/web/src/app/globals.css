@@ -1,0 +1,179 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-hover: var(--hover);
+  --color-hairline: var(--hairline);
+  --color-royal: var(--royal);
+  --color-royal-hover: var(--royal-hover);
+  --color-royal-tint: var(--royal-tint);
+  --color-amber: var(--amber);
+  --color-red: var(--red);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --radius: var(--radius);
+  --radius-overlay: var(--radius-overlay);
+  --ease-out: var(--ease-out);
+
+  /* Retained for Shadcn compatibility */
+  --color-background: var(--canvas);
+  --color-foreground: var(--text);
+  --color-primary: var(--royal);
+  --color-primary-foreground: #FFFFFF;
+  --color-border: var(--hairline);
+  --color-input: var(--hairline);
+  --color-ring: var(--royal);
+}
+
+:root {
+  /* surfaces */
+  --canvas: #FAFBFC;
+  --panel: #F8F9FB;
+  --raised: #FFFFFF;
+  --inset: #F1F3F7;
+  --hover: #F1F3F7;
+  --hairline: rgba(0, 0, 0, 0.06);
+  --hairline-2: rgba(0, 0, 0, 0.12);
+  /* royal blue accent */
+  --royal: #2540D9;
+  --royal-hover: #1B30A8;
+  --royal-tint: #EEF0FE;
+  --royal-tint-2: #C7D2FE;
+  /* status */
+  --amber: #D97706;
+  --amber-tint: #FFF7ED;
+  --amber-tint-2: #FDE68A;
+  --amber-border: #FED7AA;
+  --red: #DC2626;
+  --red-tint: #FEF2F2;
+  --red-border: #FECACA;
+  --green: #15803D;
+  /* text */
+  --text: #1A1D23;
+  --text-2: #3F4652;
+  --muted: #626A7A;
+  --muted-2: #949BAA;
+  /* shape */
+  --radius: 6px;
+  --radius-overlay: 10px;
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.08);
+  /* motion */
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: linear(0, 0.18, 0.42, 0.72, 0.95, 1.06, 1.04, 1.01, 0.99, 1);
+}
+
+@layer base {
+  * {
+    @apply border-hairline;
+  }
+  body {
+    @apply bg-canvas text-text font-sans antialiased selection:bg-royal/10 selection:text-royal-hover;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss07" 1, "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1, "liga" 1, "calt" 1;
+    scroll-behavior: smooth;
+  }
+
+  /* Global Focus Visible System */
+  button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--royal);
+  }
+
+  /* Exclude inputs that handle their own focus natively */
+  input:focus-visible {
+    @apply outline-none;
+  }
+
+  .mono {
+    @apply font-mono tabular-nums;
+  }
+
+  /* Strict Cap on Font Weight */
+  h1, h2, h3, h4, h5, h6, strong, b {
+    font-weight: 600 !important;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2540D9] focus-visible:ring-offset-2;
+  }
+
+  /* Typography Tracking */
+  .tracking-title { letter-spacing: -0.011em; }
+  .tracking-hero { letter-spacing: -0.02em; }
+  .tracking-caps { letter-spacing: 0.06em; }
+
+  /* Tactile Button Primitives */
+  .btn-tactile {
+    @apply transition-all duration-100 ease-out active:scale-[0.98];
+  }
+
+  .btn-primary {
+    @apply transition-all duration-100 ease-out active:scale-[0.98] bg-royal hover:bg-royal-hover text-white active:brightness-95;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+}
+
+/* List Enter Motion */
+@keyframes list-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-list-enter {
+  animation: list-enter 160ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

@@ -1,0 +1,61 @@
+name: Tally agent signed release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        type: choice
+        options: [staging, stable]
+        default: staging
+      version:
+        description: Existing v-prefixed tag to release
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    environment: tally-${{ inputs.channel }}
+    defaults:
+      run:
+        working-directory: apps/firmos-agent
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/firmos-agent/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - name: Require signing certificate
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: if (-not $env:CERTIFICATE) { throw "WINDOWS_CERTIFICATE is required" }
+      - name: Import signing certificate
+        id: cert
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $path = Join-Path $env:RUNNER_TEMP "firmos-agent.pfx"
+          [IO.File]::WriteAllBytes($path, [Convert]::FromBase64String($env:CERTIFICATE))
+          $secure = ConvertTo-SecureString $env:PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $path -CertStoreLocation Cert:\CurrentUser\My -Password $secure
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/firmos-agent
+          tagName: ${{ inputs.version }}
+          releaseName: FirmOS Tally Agent ${{ inputs.version }}
+          releaseDraft: ${{ inputs.channel == 'staging' }}
+          prerelease: ${{ inputs.channel == 'staging' }}
+          args: --config '{"bundle":{"windows":{"certificateThumbprint":"${{ steps.cert.outputs.thumbprint }}"}}}'

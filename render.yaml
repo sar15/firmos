@@ -1,0 +1,91 @@
+services:
+  - type: web
+    name: firmos-api
+    runtime: docker
+    plan: starter
+    region: singapore
+    branch: main
+    autoDeployTrigger: checksPass
+    dockerfilePath: firmos-backend/Dockerfile
+    dockerContext: firmos-backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        value: https://sdsbqhwniznarfxnqeum.supabase.co
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: TOKEN_ENC_KEY
+        generateValue: true
+      - key: FIRMOS_AUTH_MODE
+        value: jwt
+      - key: FIRMOS_ENVIRONMENT
+        value: production
+      - key: STRICT_NO_MOCK
+        value: "true"
+      - key: PROVIDER_WRITES_ENABLED
+        value: "false"
+      - key: ZOHO_WRITES_ENABLED
+        value: "false"
+      - key: TALLY_WRITES_ENABLED
+        value: "false"
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ZOHO_REDIRECT_URI
+        value: https://firmos-api.onrender.com/api/connectors/callback/zoho
+
+  - type: worker
+    name: firmos-worker
+    runtime: docker
+    plan: starter
+    region: singapore
+    branch: main
+    autoDeployTrigger: checksPass
+    dockerfilePath: firmos-backend/Dockerfile
+    dockerContext: firmos-backend
+    dockerCommand: python -m automation.service
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: firmos-api
+          envVarKey: DATABASE_URL
+      - key: SUPABASE_URL
+        fromService:
+          type: web
+          name: firmos-api
+          envVarKey: SUPABASE_URL
+      - key: SUPABASE_SERVICE_KEY
+        fromService:
+          type: web
+          name: firmos-api
+          envVarKey: SUPABASE_SERVICE_KEY
+      - key: SUPABASE_JWT_SECRET
+        fromService:
+          type: web
+          name: firmos-api
+          envVarKey: SUPABASE_JWT_SECRET
+      - key: TOKEN_ENC_KEY
+        fromService:
+          type: web
+          name: firmos-api
+          envVarKey: TOKEN_ENC_KEY
+      - key: FIRMOS_AUTH_MODE
+        value: jwt
+      - key: FIRMOS_ENVIRONMENT
+        value: production
+      - key: STRICT_NO_MOCK
+        value: "true"
+      - key: PROVIDER_WRITES_ENABLED
+        value: "false"
+      - key: ZOHO_WRITES_ENABLED
+        value: "false"
+      - key: TALLY_WRITES_ENABLED
+        value: "false"
+      - key: ZOHO_REDIRECT_URI
+        value: https://firmos-api.onrender.com/api/connectors/callback/zoho

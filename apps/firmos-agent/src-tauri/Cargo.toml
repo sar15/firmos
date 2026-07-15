@@ -1,0 +1,36 @@
+[package]
+name = "firmos-tally-agent"
+version = "1.0.0"
+description = "Secure local TallyPrime connector for firmOS"
+authors = ["firmOS"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3" }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3", features = ["tray-icon"] }
+tauri-plugin-log = "2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+roxmltree = "0.20"
+keyring = "3"
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["time"] }
+base64 = "0.22"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+sha2 = "0.10"
+rusqlite = { version = "0.32", features = ["bundled"] }
+tauri-plugin-autostart = "2"

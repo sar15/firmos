@@ -1,0 +1,1 @@
+# WhiteBooks GSP connector package
