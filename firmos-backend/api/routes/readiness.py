@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from api.deps import FirmContext, get_current_firm, get_db
 from core.config import get_settings
+from core.database import get_db_pool
 
 router = APIRouter(prefix="/api/setup", tags=["setup"])
 deployment_router = APIRouter(tags=["deployment"])
@@ -61,7 +62,7 @@ async def live():
 
 
 @deployment_router.get("/ready")
-async def ready(db_pool=Depends(get_db)):
+async def ready(db_pool=Depends(get_db_pool)):
     """Deployment readiness; any missing safety dependency returns 503."""
     checks = await _checks(db_pool, firm_id="__deployment__")
     is_ready = all(check["ready"] for check in checks)
