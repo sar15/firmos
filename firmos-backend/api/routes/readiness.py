@@ -1,7 +1,7 @@
 """Truthful liveness, readiness, and setup diagnostics."""
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from api.deps import FirmContext, get_current_firm, get_db
@@ -41,7 +41,11 @@ async def _checks(db_pool, firm_id: str) -> list[dict]:
             )
             queue_ready = await conn.fetchval("SELECT to_regclass('public.automation_jobs') IS NOT NULL")
             heartbeat_query = "SELECT MAX(seen_at) FROM worker_heartbeats"
-            heartbeat = await conn.fetchval(heartbeat_query) if firm_id == "__deployment__" else await conn.fetchval(
+            heartbeat = await conn.fetchval(
+                heartbeat_query + " WHERE firm_id=$1 AND worker_kind=$2",
+                firm_id,
+                "AUTOMATION_WORKER",
+            ) if firm_id == "__deployment__" else await conn.fetchval(
                 heartbeat_query + " WHERE firm_id=$1", firm_id,
             )
     except Exception:

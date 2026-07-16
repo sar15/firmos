@@ -14,6 +14,7 @@ from connectors.zoho_books.client import get_organizations
 from connectors.zoho_books.connector import CAPABILITIES, capabilities_for_scopes
 from connectors.zoho_books.credentials import save_installation_credentials
 from core.config import settings
+from core.database import get_db_pool
 from core.security import decrypt_token, encrypt_token
 
 router = APIRouter()
@@ -63,7 +64,7 @@ async def start_zoho_oauth(request: Request, firm: FirmContext, db_pool) -> dict
 @router.get("/callback/zoho")
 async def zoho_callback(
     request: Request, code: str, state: str, location: str | None = None,
-    db_pool=Depends(get_db),
+    db_pool=Depends(get_db_pool),
 ):
     if not db_pool:
         raise HTTPException(status_code=503, detail="Database not connected")

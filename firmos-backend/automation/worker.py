@@ -1,5 +1,6 @@
 """Separate durable financial worker; API processes never import this module."""
 import asyncio
+import logging
 import uuid
 
 from connectors.platform.provider_objects import record_verification
@@ -9,6 +10,7 @@ from connectors.zoho_books.connector import register_zoho_v1
 from connectors.zoho_books.sync_worker import run_sync_job
 from core.feature_flags import scoped_write_block_reason
 
+log = logging.getLogger("firmos.automation.worker")
 MAX_ATTEMPTS = 5
 RETRYABLE = {ResultStatus.RATE_LIMITED, ResultStatus.PROVIDER_UNAVAILABLE}
 

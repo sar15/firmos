@@ -2,8 +2,10 @@ import asyncio
 
 import httpx
 import pytest
+from fastapi.testclient import TestClient
 
 from api.routes.connector_zoho_oauth import oauth_state_digest, resolve_zoho_redirect_uri
+from core.database import get_db_pool
 from connectors.platform.types import ApprovedAction, Cursor, ExecutionAttempt, ResultStatus
 from connectors.zoho_books.client import MAX_RESPONSE_BYTES, ZohoClient
 from connectors.zoho_books.connector import CAPABILITIES, ZohoBooksV1Connector
@@ -123,6 +125,48 @@ def test_oauth_state_and_redirect_ignore_request_headers(monkeypatch):
     monkeypatch.setattr("api.routes.connector_zoho_oauth.settings.zoho_redirect_uri", "https://firmos.example/api/connectors/callback/zoho")
     assert resolve_zoho_redirect_uri(None) == "https://firmos.example/api/connectors/callback/zoho"
     assert oauth_state_digest("state") != oauth_state_digest("State")
+
+
+class MissingOAuthAttemptConnection:
+    async def fetchrow(self, *_args):
+        return None
+
+
+class MissingOAuthAttemptAcquire:
+    async def __aenter__(self):
+        return MissingOAuthAttemptConnection()
+
+    async def __aexit__(self, *_args):
+        return None
+
+
+class MissingOAuthAttemptPool:
+    def acquire(self):
+        return MissingOAuthAttemptAcquire()
+
+
+def test_zoho_callback_validates_state_without_bearer_token():
+    from api.deps import get_current_firm
+    from api.main import app
+
+    previous_identity = app.dependency_overrides.pop(get_current_firm, None)
+    previous_pool = app.dependency_overrides.get(get_db_pool)
+    app.dependency_overrides[get_db_pool] = lambda: MissingOAuthAttemptPool()
+    try:
+        response = TestClient(app).get(
+            "/api/connectors/callback/zoho",
+            params={"code": "dummy", "state": "dummy"},
+        )
+    finally:
+        if previous_identity is not None:
+            app.dependency_overrides[get_current_firm] = previous_identity
+        if previous_pool is None:
+            app.dependency_overrides.pop(get_db_pool, None)
+        else:
+            app.dependency_overrides[get_db_pool] = previous_pool
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "This Zoho connection request has expired or was already used"
 
 
 class BillFaultSimulator:
