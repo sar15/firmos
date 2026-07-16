@@ -213,7 +213,21 @@ class Worker:
 
 async def serve(pool):
     worker = Worker(pool)
+    last_heartbeat = 0.0
     while True:
+        now = asyncio.get_event_loop().time()
+        if now - last_heartbeat > 60.0:
+            try:
+                async with pool.acquire() as conn:
+                    await conn.execute(
+                        """INSERT INTO worker_heartbeats(firm_id,worker_kind,worker_id,seen_at)
+                           VALUES('__deployment__','AUTOMATION_WORKER',$1,NOW())
+                           ON CONFLICT(firm_id,worker_kind,worker_id) DO UPDATE SET seen_at=NOW()""",
+                        worker.worker_id,
+                    )
+            except Exception as exc:
+                log.error("worker_heartbeat_failed", error=str(exc))
+            last_heartbeat = now
         if not await worker.run_once():
             await asyncio.sleep(1)
 
