@@ -41,6 +41,31 @@ def decrypt_token(data: bytes) -> str:
         raise StoredCredentialError("Stored connector credentials cannot be decrypted; reconnect the connector") from exc
 
 
+import httpx
+from typing import Any
+
+_JWKS_CACHE: dict[str, dict[str, Any]] = {}
+
+
+def _get_jwk_key(header: dict, config) -> Any:
+    alg = header.get("alg", "HS256")
+    if alg == "HS256":
+        return config.supabase_jwt_secret
+    kid = header.get("kid")
+    if kid and kid not in _JWKS_CACHE and config.supabase_url:
+        jwks_url = f"{config.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                resp = client.get(jwks_url)
+                if resp.status_code == 200:
+                    for key in resp.json().get("keys", []):
+                        if key.get("kid"):
+                            _JWKS_CACHE[key["kid"]] = key
+        except Exception:
+            pass
+    return _JWKS_CACHE.get(kid, config.supabase_jwt_secret) if kid else config.supabase_jwt_secret
+
+
 def decode_supabase_jwt(token: str) -> dict:
     """Verify signature, issuer, audience, expiry, and subject."""
     config = get_settings()
@@ -48,10 +73,13 @@ def decode_supabase_jwt(token: str) -> dict:
     if not config.supabase_url and not config.supabase_jwt_issuer:
         raise ValueError("JWT issuer is not configured")
     try:
+        header = jwt.get_unverified_header(token)
+        alg = header.get("alg", "HS256")
+        key = _get_jwk_key(header, config)
         payload = jwt.decode(
             token,
-            config.supabase_jwt_secret,
-            algorithms=["HS256"],
+            key,
+            algorithms=[alg] if alg in ("HS256", "ES256", "RS256") else ["HS256", "ES256", "RS256"],
             audience=config.supabase_jwt_audience,
             issuer=issuer,
             options={"require_exp": True, "require_sub": True},
