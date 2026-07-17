@@ -566,6 +566,42 @@
         "title": "ClientCreate",
         "type": "object"
       },
+      "ComponentNetGSTPayableRequest": {
+        "properties": {
+          "itc_cgst_paise": {
+            "default": 0,
+            "title": "Itc Cgst Paise",
+            "type": "integer"
+          },
+          "itc_igst_paise": {
+            "default": 0,
+            "title": "Itc Igst Paise",
+            "type": "integer"
+          },
+          "itc_sgst_paise": {
+            "default": 0,
+            "title": "Itc Sgst Paise",
+            "type": "integer"
+          },
+          "output_cgst_paise": {
+            "default": 0,
+            "title": "Output Cgst Paise",
+            "type": "integer"
+          },
+          "output_igst_paise": {
+            "default": 0,
+            "title": "Output Igst Paise",
+            "type": "integer"
+          },
+          "output_sgst_paise": {
+            "default": 0,
+            "title": "Output Sgst Paise",
+            "type": "integer"
+          }
+        },
+        "title": "ComponentNetGSTPayableRequest",
+        "type": "object"
+      },
       "Decision": {
         "properties": {
           "amountAtStake": {
@@ -1770,6 +1806,7 @@
               {
                 "enum": [
                   "SUPPLIER_NOT_FILED",
+                  "PORTAL_ENTRY_NOT_IN_BOOKS",
                   "AMOUNT_MISMATCH",
                   "DATE_DRIFT"
                 ],
@@ -1799,7 +1836,14 @@
             "title": "Score"
           },
           "source": {
-            "$ref": "#/components/schemas/ReconLine"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReconLine"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "enum": [
@@ -1823,8 +1867,7 @@
         },
         "required": [
           "id",
-          "status",
-          "source"
+          "status"
         ],
         "title": "ReconMatch",
         "type": "object"
@@ -2098,6 +2141,17 @@
       },
       "TDSRequest": {
         "properties": {
+          "buyer_prior_year_turnover_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyer Prior Year Turnover Paise"
+          },
           "gross_amount_paise": {
             "title": "Gross Amount Paise",
             "type": "integer"
@@ -2106,6 +2160,11 @@
             "default": true,
             "title": "Pan Available",
             "type": "boolean"
+          },
+          "prior_period_amount_paise": {
+            "default": 0,
+            "title": "Prior Period Amount Paise",
+            "type": "integer"
           },
           "section": {
             "title": "Section",
@@ -3959,6 +4018,7 @@
     },
     "/api/compute/net-gst-payable": {
       "post": {
+        "deprecated": true,
         "description": "Compute net GST payable after eligible ITC deduction.",
         "operationId": "compute_net_gst_api_compute_net_gst_payable_post",
         "requestBody": {
@@ -3992,6 +4052,46 @@
           }
         },
         "summary": "Compute Net Gst",
+        "tags": [
+          "compute"
+        ]
+      }
+    },
+    "/api/compute/net-gst-payable/components": {
+      "post": {
+        "description": "Apply statutory component-wise ITC utilization and return cash payable.",
+        "operationId": "compute_component_net_gst_api_compute_net_gst_payable_components_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentNetGSTPayableRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compute Component Net Gst",
         "tags": [
           "compute"
         ]
@@ -5363,6 +5463,25 @@
         "summary": "Review Workspace",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/api/firms": {
+      "get": {
+        "operationId": "list_firms_api_firms_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Firms",
+        "tags": [
+          "firms"
         ]
       }
     },
@@ -8277,12 +8396,12 @@
         "operationId": "push_tally_data_api_tally_push_post",
         "parameters": [
           {
-            "description": "Unique UUID per push attempt",
+            "description": "Stable key for the exact sync payload",
             "in": "header",
             "name": "X-Idempotency-Key",
             "required": true,
             "schema": {
-              "description": "Unique UUID per push attempt",
+              "description": "Stable key for the exact sync payload",
               "title": "X-Idempotency-Key",
               "type": "string"
             }
