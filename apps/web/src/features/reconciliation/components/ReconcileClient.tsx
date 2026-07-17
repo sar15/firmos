@@ -201,9 +201,9 @@ export function ReconcileClient({ clientId }: ReconcileClientProps) {
     autoMatched: autoMatched.length,
     suggested: suggested.length,
     unmatched: unmatched.length,
-    totalAutoMatched: autoMatched.reduce((acc, m) => acc + m.source.amount, 0),
-    totalSuggested: suggested.reduce((acc, m) => acc + m.source.amount, 0),
-    totalUnmatched: unmatched.reduce((acc, m) => acc + m.source.amount, 0),
+    totalAutoMatched: autoMatched.reduce((acc, m) => acc + (m.source?.amount ?? m.target?.amount ?? 0), 0),
+    totalSuggested: suggested.reduce((acc, m) => acc + (m.source?.amount ?? m.target?.amount ?? 0), 0),
+    totalUnmatched: unmatched.reduce((acc, m) => acc + (m.source?.amount ?? m.target?.amount ?? 0), 0),
   };
 
   return (

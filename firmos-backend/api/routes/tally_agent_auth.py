@@ -102,6 +102,9 @@ async def require_device(
             )
         except ValueError as exc:
             raise HTTPException(status_code=401, detail={"code": str(exc)}) from exc
+        # Nonces only protect the short signed-request window. Pruning here is
+        # index-backed and keeps the replay table bounded without a scheduler.
+        await conn.execute("DELETE FROM tally_device_nonces WHERE received_at < NOW() - interval '10 minutes'")
         inserted = await conn.fetchval(
             """INSERT INTO tally_device_nonces(device_id,nonce,requested_at)
                VALUES($1::uuid,$2,$3::bigint) ON CONFLICT DO NOTHING RETURNING nonce""",

@@ -64,10 +64,13 @@ def _surcharge(income: int, tax: int, rule: dict, regime: str, slabs: list) -> t
 
 def calculate(rule: dict, *, income_paise: int, deductions_paise: int=0, tax_credits_paise: int=0,
               regime: str="NEW", resident: bool=True, special_rate_income_paise: int=0,
-              special_rate_tax_paise: int=0) -> dict:
+              special_rate_tax_paise: int=0, new_regime_allowed_deductions_paise: int=0) -> dict:
     validate_rule(rule);regime=regime.upper()
     if regime not in {"NEW","OLD"}:raise ValueError("regime must be NEW or OLD")
-    normal_taxable=max(0,int(income_paise)-int(deductions_paise));taxable=normal_taxable+int(special_rate_income_paise)
+    requested_deductions=max(0,int(deductions_paise))
+    allowed_new=max(0,min(requested_deductions,int(new_regime_allowed_deductions_paise)))
+    applied_deductions=requested_deductions if regime=="OLD" else allowed_new
+    normal_taxable=max(0,int(income_paise)-applied_deductions);taxable=normal_taxable+int(special_rate_income_paise)
     slabs=rule[f"{regime.lower()}_slabs"];slab_tax,details=_slab_tax(normal_taxable,slabs)
     prefix=regime.lower();threshold=int(rule.get(f"{prefix}_rebate_threshold_paise",0));maximum=int(rule.get(f"{prefix}_rebate_max_paise",0))
     rebate=min(slab_tax,maximum) if resident and taxable<=threshold else 0
@@ -77,7 +80,8 @@ def calculate(rule: dict, *, income_paise: int, deductions_paise: int=0, tax_cre
     gross=normal_tax+int(special_rate_tax_paise)+surcharge+cess
     payable=max(0,gross-int(tax_credits_paise));refund=max(0,int(tax_credits_paise)-gross)
     unit=int(rule.get("round_to_paise",1000));rounded=((payable+unit//2)//unit)*unit
-    return {"income_paise":int(income_paise),"deductions_paise":int(deductions_paise),
+    return {"income_paise":int(income_paise),"deductions_paise":applied_deductions,
+            "deductions_disallowed_paise":requested_deductions-applied_deductions,
             "normal_taxable_income_paise":normal_taxable,"special_rate_income_paise":int(special_rate_income_paise),
             "taxable_income_paise":taxable,
             "regime":regime,"slab_details":details,"slab_tax_paise":slab_tax,"rebate_paise":rebate,

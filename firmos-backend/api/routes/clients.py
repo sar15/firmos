@@ -9,6 +9,10 @@ from models.schemas import Client, Decision, ExtractedDocument
 router = APIRouter(prefix="/api/clients", tags=["clients"])
 
 
+def _books_provider(value: Optional[str]) -> str:
+    return value or "NONE"
+
+
 @router.get("", response_model=list[Client])
 async def list_clients(
     entity_type: Optional[str] = Query(None, alias="entityType"),
@@ -82,7 +86,7 @@ async def list_clients(
                     gstin=row["gstin"] or "",
                     entityType=row["entity_type"] or "",
                     state=row["state"] or "",
-                    booksProvider=row["books_provider"] or "",
+                    booksProvider=_books_provider(row["books_provider"]),
                     nextDue=row["next_due"].isoformat() if row["next_due"] else "",
                     complianceStatus=row["compliance_status"]
                 )
@@ -117,7 +121,7 @@ async def search_everything(
                 gstin=row["gstin"] or "",
                 entityType=row["entity_type"] or "",
                 state=row["state"] or "",
-                booksProvider=row["books_provider"] or "",
+                booksProvider=_books_provider(row["books_provider"]),
                 nextDue=row["next_due"].isoformat() if row["next_due"] else "",
                 complianceStatus=row["compliance_status"]
             )
@@ -166,7 +170,7 @@ async def get_client(
                 gstin=row["gstin"] or "",
                 entityType=row["entity_type"] or "",
                 state=row["state"] or "",
-                booksProvider=row["books_provider"] or "",
+                booksProvider=_books_provider(row["books_provider"]),
                 nextDue=row["next_due"].isoformat() if row["next_due"] else "",
                 complianceStatus=row["compliance_status"]
             )
@@ -210,7 +214,7 @@ async def get_client_profile(
                 gstin=client_row["gstin"] or "",
                 entityType=client_row["entity_type"] or "",
                 state=client_row["state"] or "",
-                booksProvider=client_row["books_provider"] or "",
+                booksProvider=_books_provider(client_row["books_provider"]),
                 nextDue=client_row["next_due"].isoformat() if client_row["next_due"] else "",
                 complianceStatus=client_row["compliance_status"]
             ).model_dump(),

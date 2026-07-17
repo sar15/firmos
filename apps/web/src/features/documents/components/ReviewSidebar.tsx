@@ -31,7 +31,7 @@ export function ReviewSidebar({ workspace, provider, onProviderChange }: {
       <div className="border-b border-[var(--hairline)] p-5">
         <h3 className="text-sm font-semibold text-[var(--text)]">Deterministic checks</h3>
         {findings.length === 0 ? (
-          <p className="mt-3 flex gap-2 text-sm text-emerald-700"><CheckCircle2 className="h-4 w-4" />No validation exceptions.</p>
+          <p className="mt-3 flex gap-2 text-sm text-[var(--royal)]"><CheckCircle2 className="h-4 w-4" />No validation exceptions.</p>
         ) : (
           <ul className="mt-3 space-y-3">
             {findings.map(item => (

@@ -61,12 +61,12 @@ export async function getGstr2bWorkspace(runId: string): Promise<ReconMatch[]> {
   const data = await responseJson<{ items: Array<Record<string, unknown>> }>(res);
   return data.items.map((item) => {
     const bucket = String(item.bucket);
-    const book = {
+    const book = item.purchase_id ? {
       id: String(item.purchase_id || `missing-book-${item.id}`), date: String(item.bill_date || item.invoice_date || ""),
       description: String(item.vendor_name || "Purchase missing in books"), counterparty: String(item.vendor_name || item.supplier_gstin || "Unknown"),
       amount: Number(item.book_total_paise || item.total_paise || 0), ref: String(item.bill_number || item.invoice_number || ""),
       gstin: String(item.vendor_gstin || item.supplier_gstin || ""),
-    };
+    } : null;
     const portal = item.gstr2b_document_id ? {
       id: String(item.gstr2b_document_id), date: String(item.invoice_date || ""), description: String(item.document_type || "GSTR-2B document"),
       counterparty: String(item.supplier_gstin || "Unknown supplier"), amount: Number(item.total_paise || 0),
@@ -123,6 +123,7 @@ export async function getReconciliation(clientId: string, mode: ReconMode, perio
 }
 
 export async function acceptMatch(match: ReconMatch, clientId: string, mode: ReconMode, period: string): Promise<{ ok: boolean }> {
+  if (!match.source) throw new Error("A portal-only entry cannot be accepted as a books match.");
   const res = await fetch(`/api/reconciliation/matches/${match.id}/accept`, {
     method: "POST",
     headers: { ...await getAuthHeaders(), "Content-Type": "application/json" },
@@ -133,6 +134,7 @@ export async function acceptMatch(match: ReconMatch, clientId: string, mode: Rec
 }
 
 export async function rejectMatch(match: ReconMatch, clientId: string, mode: ReconMode, period: string): Promise<{ ok: boolean }> {
+  if (!match.source) throw new Error("A portal-only entry cannot be rejected as a books match.");
   const res = await fetch(`/api/reconciliation/matches/${match.id}/reject`, {
     method: "POST",
     headers: { ...await getAuthHeaders(), "Content-Type": "application/json" },

@@ -43,24 +43,11 @@ async def compute_gst_summary(client_id: str, period: str, firm: FirmContext, db
     if not db_pool:
         raise HTTPException(status_code=500, detail="Database not available")
 
-    # 1. Fetch Zoho Tokens
-    async with db_pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT access_token_enc, refresh_token_enc, external_account_id FROM connections WHERE firm_id = $1 AND connector_id = 'c1'",
-            firm.firm_id
-        )
-        if not row:
-            raise HTTPException(status_code=400, detail="Zoho Books not connected")
-
-    from core.security import decrypt_token
-    from connectors.zoho_books.client import ZohoClient
+    from connectors.zoho_books.legacy_credentials import legacy_zoho_client
     from connectors.zoho_books.sync import list_invoices_by_period
-
-    access_token = decrypt_token(row["access_token_enc"]) if row["access_token_enc"] else ""
-    refresh_token_enc = row["refresh_token_enc"]
-    org_id = row["external_account_id"]
-
-    client = ZohoClient(access_token, refresh_token_enc, org_id)
+    client = await legacy_zoho_client(db_pool, firm.firm_id)
+    if not client:
+        raise HTTPException(status_code=400, detail="Zoho Books not connected")
 
     # Fetch sales invoices for the specific period
     date_start, date_end = _period_to_dates(period)

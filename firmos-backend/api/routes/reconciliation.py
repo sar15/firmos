@@ -64,22 +64,21 @@ async def _build_uploaded_2b_target(conn, firm_id: str, client_id: str, period: 
 
 
 async def _build_bank_target_from_zoho(
-    conn, firm_id: str, period: str, bank_account_id: str | None,
+    db_pool, firm_id: str, period: str, bank_account_id: str | None,
 ) -> list[ReconLine]:
     """Read the selected Zoho bank account for one period; never guess an account."""
-    from core.security import decrypt_token
-    from connectors.zoho_books.client import ZohoClient
+    from connectors.zoho_books.legacy_credentials import legacy_zoho_client
     from connectors.zoho_books.sync import list_accounts, list_bank_transactions
 
-    row = await conn.fetchrow(
-        """SELECT access_token_enc, refresh_token_enc, external_account_id FROM connections
-           WHERE firm_id = $1 AND connector_id = 'c1'""", firm_id,
-    )
-    if not row or not row["access_token_enc"]:
+    try:
+        client = await legacy_zoho_client(db_pool, firm_id)
+    except Exception as exc:
+        raise AppError("ZOHO_BANK_READ_FAILED", "Zoho bank transactions could not be read.", status_code=503,
+                       retryable=True, user_action="Reconnect Zoho Books and retry the reconciliation.") from exc
+    if not client:
         raise AppError("CONNECTOR_AUTH_REQUIRED", "Connect Zoho Books before bank reconciliation.", status_code=409,
                        user_action="Reconnect Zoho Books.")
     try:
-        client = ZohoClient(decrypt_token(row["access_token_enc"]), row["refresh_token_enc"], row["external_account_id"])
         if not bank_account_id:
             accounts = [a for a in (await list_accounts(client)).get("chartofaccounts", []) if a.get("account_type") == "bank"]
             if len(accounts) != 1:
@@ -142,7 +141,7 @@ async def get_reconciliation(
             target = await _build_uploaded_2b_target(conn, firm.firm_id, client_id, period)
         else:
             source = await _build_bank_source(conn, firm.firm_id, client_id, period)
-            target = await _build_bank_target_from_zoho(conn, firm.firm_id, period, bank_account_id)
+            target = await _build_bank_target_from_zoho(db_pool, firm.firm_id, period, bank_account_id)
     return reconcile(source, target)
 
 

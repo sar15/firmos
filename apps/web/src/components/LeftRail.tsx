@@ -26,7 +26,7 @@ export function LeftRail({ userEmail }: { userEmail: string }) {
     <aside className="w-[244px] bg-[var(--panel)] border-r border-[var(--hairline)] flex flex-col shrink-0 h-full p-[18px_14px]">
       {/* Brand */}
       <Link href="/" className="flex items-center gap-[11px] px-2.5 pb-[22px] pt-1 font-semibold text-[16px] tracking-[-0.02em] text-[var(--text)] hover:opacity-90 transition-opacity select-none">
-        <div className="w-[26px] h-[26px] rounded-[7px] bg-gradient-to-br from-[var(--royal)] to-[#6B7CF7] flex items-center justify-center text-white text-[13px] shadow-[0_2px_8px_rgba(37,64,217,0.3)]">
+        <div className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] bg-[var(--royal)] text-[13px] text-white">
           f
         </div>
         firmOS
@@ -88,14 +88,14 @@ export function LeftRail({ userEmail }: { userEmail: string }) {
 
       {/* User */}
       <div className="px-2.5 pt-3 border-t border-[var(--hairline)] mt-[14px] flex gap-[11px] items-center text-[13px] rounded-[10px] pb-1 select-none">
-        <div className="w-[28px] h-[28px] rounded-full bg-gradient-to-br from-[var(--royal)] to-[#6B7CF7] text-white flex items-center justify-center text-[11px] font-semibold shrink-0 shadow-[var(--shadow-xs)]">
+        <div className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[6px] bg-[var(--royal)] text-[11px] font-semibold text-white">
           {initials}
         </div>
         <div className="flex flex-col overflow-hidden">
           <div className="font-semibold text-[var(--text)] truncate">Signed in</div>
           <div className="text-[var(--muted)] text-[11.5px] truncate leading-tight">{userEmail}</div>
         </div>
-        <button type="button" aria-label="Sign out" title="Sign out" onClick={async () => { await getBrowserAuth().auth.signOut(); window.location.assign("/login"); }} className="ml-auto min-h-11 min-w-11 rounded-lg text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--red)]"><LogOut className="mx-auto h-4 w-4" /></button>
+        <button type="button" aria-label="Sign out" title="Sign out" onClick={async () => { await getBrowserAuth().auth.signOut(); window.location.assign("/login"); }} className="ml-auto min-h-11 min-w-11 rounded-[6px] text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--red)]"><LogOut className="mx-auto h-4 w-4" /></button>
       </div>
     </aside>
   );

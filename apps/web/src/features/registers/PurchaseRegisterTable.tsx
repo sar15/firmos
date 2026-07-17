@@ -92,7 +92,7 @@ export const PurchaseRegisterTable = ({ rows, period }: PurchaseRegisterTablePro
             </span>
             <span className="text-right w-[60px]">
               <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                row.verified ? "bg-emerald-50 text-emerald-700" :
+                row.verified ? "bg-[var(--royal-tint)] text-[var(--royal)]" :
                 "bg-[var(--amber-tint)] text-[var(--amber)]"
               }`}>{row.verified ? "Verified" : row.status}</span>
             </span>

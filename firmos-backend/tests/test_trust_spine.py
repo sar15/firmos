@@ -39,7 +39,9 @@ def test_credential_envelope_is_tenant_bound_and_tamper_evident():
     sealed = seal_credentials("firm-1", "install-1", {"refresh_token": "secret"}, "v1")
     assert open_credentials("firm-1", "install-1", sealed, "v1")["refresh_token"] == "secret"
     with pytest.raises(StoredCredentialError): open_credentials("firm-2", "install-1", sealed, "v1")
-    with pytest.raises(StoredCredentialError): open_credentials("firm-1", "install-1", sealed[:-1] + b"x", "v1")
+    tampered = bytearray(sealed)
+    tampered[len(tampered) // 2] ^= 1
+    with pytest.raises(StoredCredentialError): open_credentials("firm-1", "install-1", bytes(tampered), "v1")
 
 
 @pytest.mark.asyncio

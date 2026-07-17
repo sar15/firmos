@@ -6,7 +6,7 @@ export function ClientFocusCard() {
   return (
     <div className="bg-[var(--raised)] border border-[var(--hairline)] rounded-[6px] p-3.5 mb-5.5">
       <div className="flex items-center gap-2.5 mb-2.5">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#F59E0B] text-white flex items-center justify-center text-[13px] font-bold shrink-0 shadow-sm">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] bg-[var(--royal)] text-[13px] font-bold text-white">
           A
         </div>
         <div>

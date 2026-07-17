@@ -16,11 +16,15 @@ def _tokens(text: str) -> tuple[str, ...]:
     return tuple(sorted(set(re.findall(r"[A-Z0-9]{3,}", text.upper()))))
 
 
-def _date(value: str) -> date:
+def _date(value: str, source_row: int | None = None) -> date:
     try:
         return date.fromisoformat(value)
     except ValueError as exc:
-        raise AppError("INVALID_BANK_DATE", f"Unsupported transaction date: {value}", status_code=422) from exc
+        raise AppError(
+            "INVALID_BANK_DATE", f"Unsupported transaction date: {value}", status_code=422,
+            user_action="Correct the date in the highlighted statement row and upload it again.",
+            details={"sourceRow": source_row, "value": value},
+        ) from exc
 
 
 def parse_bank_statement(content: bytes, filename: str, bank_hint: str | None = None) -> BankParseResult:
@@ -40,14 +44,16 @@ def parse_bank_statement(content: bytes, filename: str, bank_hint: str | None = 
                        user_action="Use a digital statement or CSV/Excel export.")
     transactions = []
     for index, row in enumerate(rows, start=2):
+        source_row = row.get("source_row", index)
         amount = int(row["amount"])
         credit = amount if row["txn_type"] == "CREDIT" else 0
         debit = amount if row["txn_type"] == "DEBIT" else 0
         balance = int(row.get("running_balance") or 0) or None
         transactions.append(BankTransaction(
-            txn_date=_date(row["txn_date"]), value_date=_date(row["value_date"]) if row.get("value_date") else None,
+            txn_date=_date(row["txn_date"], source_row),
+            value_date=_date(row["value_date"], source_row) if row.get("value_date") else None,
             description=row["description"], reference=row.get("ref_no", ""), debit_paise=debit,
-            credit_paise=credit, balance_paise=balance, source_row=row.get("source_row", index),
+            credit_paise=credit, balance_paise=balance, source_row=source_row,
             source_page=row.get("source_page"), normalized_tokens=_tokens(f"{row['description']} {row.get('ref_no', '')}"),
         ))
     check = validate_running_balance(rows)

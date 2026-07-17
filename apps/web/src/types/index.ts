@@ -137,9 +137,9 @@ export const ReconMatchSchema = z.object({
   id: z.string(),
   status: MatchStatusSchema,
   score: z.number().min(0).max(1).optional(),
-  source: ReconLineSchema,
-  target: ReconLineSchema.optional(),
-  flag: z.enum(["SUPPLIER_NOT_FILED", "AMOUNT_MISMATCH", "DATE_DRIFT"]).optional(),
+  source: ReconLineSchema.nullable(),
+  target: ReconLineSchema.nullable().optional(),
+  flag: z.enum(["SUPPLIER_NOT_FILED", "PORTAL_ENTRY_NOT_IN_BOOKS", "AMOUNT_MISMATCH", "DATE_DRIFT"]).optional(),
   reasons: z.array(z.string()).optional(),
-});
+}).refine(match => Boolean(match.source || match.target), { message: "A reconciliation match must contain a books or portal record." });
 export type ReconMatch = z.infer<typeof ReconMatchSchema>;

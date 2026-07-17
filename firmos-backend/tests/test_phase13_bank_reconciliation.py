@@ -20,6 +20,16 @@ def test_registry_parses_canonical_paise_and_integrity():
     assert result.integrity["valid"] is True
 
 
+def test_registry_accepts_abbreviated_months_and_identifies_invalid_source_rows():
+    abbreviated = CSV.replace(b"01/06/2026", b"01-Jun-26")
+    assert parse_bank_statement(abbreviated, "statement.csv").transactions[0].txn_date == date(2026, 6, 1)
+    invalid = CSV.replace(b"01/06/2026", b"not-a-date")
+    with pytest.raises(AppError) as error:
+        parse_bank_statement(invalid, "statement.csv")
+    assert error.value.code == "INVALID_BANK_DATE"
+    assert error.value.details == {"sourceRow": 2, "value": "not-a-date"}
+
+
 def test_unknown_and_empty_formats_are_explicit_errors():
     with pytest.raises(AppError):
         parse_bank_statement(b"anything", "statement.txt")

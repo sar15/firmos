@@ -30,7 +30,7 @@ export function SalesRegisterTable({ rows, period }: { rows: SalesRegisterRow[];
             <td className="px-4 py-4 text-[var(--text)]">{row.placeOfSupply || "Needs review"}</td>
             <td className="px-4 py-4 text-right font-mono tabular-nums">{format(row.taxablePaise)}</td><td className="px-4 py-4 text-right font-mono tabular-nums">{format(row.taxTotalPaise)}</td>
             <td className="px-4 py-4 text-right font-mono font-semibold tabular-nums">{format(row.totalPaise)}</td>
-            <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ${row.verified ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+            <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ${row.verified ? "bg-[var(--royal-tint)] text-[var(--royal)]" : "bg-[var(--amber-tint)] text-[var(--amber)]"}`}>
               {row.verified ? <CheckCircle2 className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}{row.verified ? "Read-back" : row.provider}</span></td>
           </tr>)}</tbody>
         </table>

@@ -111,16 +111,17 @@ def reconcile(
                 target=None,
             ))
 
-    # Unmatched targets (in GSTR-2B but not in purchase register → SUPPLIER_NOT_FILED)
+    # Keep a portal-only row on the target side. A GSTR-2B document missing
+    # from books is not evidence that the supplier failed to file.
     for tgt in target_lines:
         if tgt.id not in matched_target_ids:
             matches.append(ReconMatch(
                 id=stable_match_id(tgt.id),
                 status="UNMATCHED",
                 score=None,
-                source=tgt,
-                target=None,
-                flag="SUPPLIER_NOT_FILED",
+                source=None,
+                target=tgt,
+                flag="PORTAL_ENTRY_NOT_IN_BOOKS",
             ))
 
     # Compute summary
@@ -132,9 +133,9 @@ def reconcile(
         autoMatched=len(auto),
         suggested=len(suggested),
         unmatched=len(unmatched),
-        totalAutoMatched=sum(m.source.amount for m in auto),
-        totalSuggested=sum(m.source.amount for m in suggested),
-        totalUnmatched=sum(m.source.amount for m in unmatched),
+        totalAutoMatched=sum((m.source or m.target).amount for m in auto),
+        totalSuggested=sum((m.source or m.target).amount for m in suggested),
+        totalUnmatched=sum((m.source or m.target).amount for m in unmatched),
     )
 
     return ReconciliationResult(matches=matches, summary=summary)

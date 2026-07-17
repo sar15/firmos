@@ -6,6 +6,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
+
 # Set env vars before importing app
 TEST_ENC_KEY = base64.b64encode(os.urandom(32)).decode()
 TEST_JWT_SECRET = "super-secret-jwt-token-with-at-least-32-bytes-long"
@@ -17,11 +18,10 @@ from core.security import encrypt_token
 client = TestClient(app)
 FIRM_ID = "11111111-1111-1111-1111-111111111111"
 USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-
 class MockConnection:
     async def fetch(self, *args, **kwargs):
         if "SELECT * FROM clients" in args[0]:
-            return [{"id": "c-1", "legal_name": "Acme", "entity_type": "PRIVATE_LIMITED", "pan": "", "gstin": "", "state": "", "books_provider": "NONE", "next_due": None, "compliance_status": "ON_TRACK"}]
+            return [{"id": "c-1", "legal_name": "Acme", "entity_type": "PRIVATE_LIMITED", "pan": "", "gstin": "", "state": "", "books_provider": None, "next_due": None, "compliance_status": "ON_TRACK"}]
         if "FROM notifications" in args[0]:
             return [{
                 "id": "notif-1", "group": "NEEDS_YOU", "title": "Review required",
@@ -95,13 +95,13 @@ def _auth_header() -> dict:
     )
     return {"Authorization": f"Bearer {token}"}
 
-
 # ---- Health ----
-
-def test_health():
+def test_health(monkeypatch):
+    monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", "abcdef1234567890")
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
+    assert resp.json()["commit"] == "abcdef123456"
 
 
 # ---- Clients ----
@@ -113,6 +113,7 @@ def test_list_clients():
     assert isinstance(data, list)
     assert len(data) >= 1
     assert "legalName" in data[0]
+    assert data[0]["booksProvider"] == "NONE"
 
 
 def test_list_clients_filter():
@@ -128,6 +129,7 @@ def test_search_everything():
     assert resp.status_code == 200
     data = resp.json()
     assert "clients" in data
+    assert data["clients"][0]["booksProvider"] == "NONE"
     assert "decisions" in data
     assert "documents" in data
 
@@ -238,15 +240,13 @@ def test_get_reconciliation():
 @pytest.mark.asyncio
 async def test_bank_reconciliation_handles_unreadable_zoho_tokens(monkeypatch):
     from api.routes.reconciliation import _build_bank_target_from_zoho
-    import core.security
+    async def unreadable(*_args):
+        raise ValueError("bad token")
 
-    class Connection:
-        async def fetchrow(self, *args): return {"access_token_enc": b"bad", "refresh_token_enc": b"bad", "external_account_id": "org"}
-
-    monkeypatch.setattr(core.security, "decrypt_token", lambda _: (_ for _ in ()).throw(ValueError("bad token")))
+    monkeypatch.setattr("connectors.zoho_books.legacy_credentials.legacy_zoho_client", unreadable)
     from core.errors import AppError
     with pytest.raises(AppError) as error:
-        await _build_bank_target_from_zoho(Connection(), FIRM_ID, "062026", None)
+        await _build_bank_target_from_zoho(object(), FIRM_ID, "062026", None)
     assert error.value.code == "ZOHO_BANK_READ_FAILED"
 
 

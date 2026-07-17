@@ -29,15 +29,33 @@ export function ConnectorsClient() {
   const [connectingZoho, setConnectingZoho] = useState(false);
 
   useEffect(() => {
-    Promise.all([getConnectors(), getSetupReadiness(), listClients()]).then(([items, status, clientRows]) => { setCategories(items); setReadiness(status); setClients(clientRows); setSelectedClientId(clientRows[0]?.id ?? ""); }).catch(() => setError("Connectors could not be loaded. Please retry.")).finally(() => setLoading(false));
+    getConnectors()
+      .then(setCategories)
+      .catch(() => setError("Connectors could not be loaded. Please retry."))
+      .finally(() => setLoading(false));
+    getSetupReadiness().then(setReadiness).catch(() => setReadiness(null));
   }, []);
 
   useEffect(() => {
     const attemptId = new URLSearchParams(window.location.search).get("zoho_attempt");
     if (!attemptId) return;
-    getZohoOrganizationChoice(attemptId)
-      .then((choice) => { setZohoChoice(choice); setSelectedOrganizationId(choice.organizations[0]?.organization_id ?? ""); })
-      .catch((reason: Error) => setZohoError(reason.message));
+    Promise.all([getZohoOrganizationChoice(attemptId), listClients()])
+      .then(async ([choice, clientRows]) => {
+        if (choice.organizations.length === 1 && clientRows.length === 1) {
+          setConnectingZoho(true);
+          await selectZohoOrganization(choice.attempt_id, choice.organizations[0].organization_id, clientRows[0].id);
+          window.history.replaceState({}, "", "/connectors");
+          setCategories(await getConnectors());
+          setActiveTab("connected");
+          return;
+        }
+        setZohoChoice(choice);
+        setSelectedOrganizationId(choice.organizations[0]?.organization_id ?? "");
+        setClients(clientRows);
+        setSelectedClientId(clientRows[0]?.id ?? "");
+      })
+      .catch((reason: Error) => setZohoError(reason.message))
+      .finally(() => setConnectingZoho(false));
   }, []);
 
   const confirmZohoOrganization = async () => {
@@ -111,6 +129,7 @@ export function ConnectorsClient() {
       <div className="flex-1 overflow-y-auto w-full flex justify-center py-6 px-8">
         <div className="w-full max-w-[860px] flex flex-col">
           <ConnectorOperations />
+          {connectingZoho && !zohoChoice && <p className="mb-6 flex items-center gap-2 text-sm text-[var(--muted)]"><Loader2 className="h-4 w-4 animate-spin" />Finishing your Zoho Books connection…</p>}
           {zohoChoice && <section className="mb-6 rounded-lg border border-[var(--royal)]/25 bg-[var(--royal-tint)] p-5" aria-label="Choose Zoho Books organization">
             <p className="text-sm font-semibold text-[var(--text)]">Choose the Zoho Books organization to connect</p>
             <p className="mt-1 text-sm text-[var(--muted)]">firmOS will read registers from this organization. Nothing is created in Zoho until you approve a specific action.</p>

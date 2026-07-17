@@ -3,9 +3,7 @@
 import pytest
 from datetime import date
 
-
 # ---- GST Engine ----
-
 def test_gst_intrastate_18():
     """18% GST intra-state → 9% CGST + 9% SGST."""
     from engines.gst import calculate_gst
@@ -144,6 +142,26 @@ def test_234c_interest():
     assert result["total_interest"] > 0
 
 
+def test_234b_starts_on_prior_april_and_rounds_interest_base_to_100_rupees():
+    from engines.interest import calculate_234b_interest
+    result = calculate_234b_interest(
+        total_tax_paise=10000100, advance_tax_paid_paise=0,
+        assessment_year_end=date(2026, 3, 31), actual_filing_date=date(2026, 4, 1),
+    )
+    assert result["months"] == 12
+    assert result["interest_base"] == 10000000  # ₹100,000; Rule 119A drops ₹1
+
+
+def test_234c_safe_harbour_is_a_trigger_but_interest_uses_statutory_due_amount():
+    from engines.interest import calculate_234c_interest
+    no_june_charge = calculate_234c_interest(10000000, [{"label": "15 Jun", "amount_paise": 1200000}])
+    assert all(item["installment"] != "15 Jun" for item in no_june_charge["details"])
+
+    charged = calculate_234c_interest(10000000, [{"label": "15 Jun", "amount_paise": 1100000}])
+    june = next(item for item in charged["details"] if item["installment"] == "15 Jun")
+    assert june["shortfall"] == 400000  # 15% due minus 11% paid, not 12% minus 11%
+
+
 # ---- Tax Engine ----
 
 def test_income_tax_new_regime_below_7l():
@@ -171,6 +189,24 @@ def test_income_tax_old_regime_10l():
     result = calculate_income_tax(1000000_00, regime="OLD")
     # 0-2.5L: 0, 2.5-5L: 12500, 5-10L: 100000 = ₹1,12,500
     assert result["base_tax"] == 11250000  # ₹1,12,500
+
+
+def test_surcharge_bands_do_not_fall_through_and_marginal_relief_caps_the_step():
+    from engines.tax import calculate_income_tax
+    below = calculate_income_tax(4900000_00, regime="OLD")
+    at_50l = calculate_income_tax(5000000_00, regime="OLD")
+    above = calculate_income_tax(5000000_00 + 1, regime="OLD")
+    assert below["surcharge_rate"] == 0
+    assert at_50l["surcharge_rate"] == 0
+    assert above["surcharge_rate"] == 10
+    assert above["marginal_relief"] > 0
+    assert above["base_tax"] + above["surcharge"] == at_50l["base_tax"] + 1
+
+
+def test_new_regime_surcharge_is_zero_through_50_lakh_and_capped_at_25_percent():
+    from engines.tax import calculate_income_tax
+    assert calculate_income_tax(4900000_00, regime="NEW")["surcharge_rate"] == 0
+    assert calculate_income_tax(50000000_00 + 1, regime="NEW")["surcharge_rate"] == 25
 
 
 # ---- Validator ----
@@ -231,3 +267,16 @@ def test_reconcile_unmatched():
 
     result = reconcile(source, target)
     assert result.summary.unmatched >= 1
+
+
+def test_reconcile_keeps_gstr2b_only_entry_on_the_portal_side():
+    from engines.reconcile import reconcile
+    from models.schemas import ReconLine
+
+    result = reconcile([], [ReconLine(
+        id="portal-1", date="2024-01-01", description="GSTR-2B", counterparty="Supplier", amount=500000,
+    )])
+    match = result.matches[0]
+    assert match.source is None
+    assert match.target and match.target.id == "portal-1"
+    assert match.flag == "PORTAL_ENTRY_NOT_IN_BOOKS"

@@ -11,8 +11,23 @@ export const getBrowserAuth = () => {
   return supabase;
 };
 
-export const getAuthHeaders = async (): Promise<Record<string, string>> => {
+const selectedFirmKey = "firmos:selectedFirmId";
+
+export const setSelectedFirmId = (firmId: string) => {
+  window.localStorage.setItem(selectedFirmKey, firmId);
+};
+
+export const getAuthHeaders = async (
+  options: { includeFirm?: boolean } = {},
+): Promise<Record<string, string>> => {
   const { data, error } = await getBrowserAuth().auth.getSession();
   if (error || !data.session?.access_token) throw new Error("Your session has expired. Sign in again.");
-  return { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}`, "X-Correlation-ID": crypto.randomUUID() };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${data.session.access_token}`,
+    "X-Correlation-ID": crypto.randomUUID(),
+  };
+  const selectedFirmId = window.localStorage.getItem(selectedFirmKey);
+  if (options.includeFirm !== false && selectedFirmId) headers["X-FirmOS-Firm"] = selectedFirmId;
+  return headers;
 };

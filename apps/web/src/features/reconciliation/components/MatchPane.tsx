@@ -83,17 +83,17 @@ export function MatchPane({
       label = "Needs review";
       dotColor = "bg-[var(--amber)]";
       count = suggested.length;
-      sum = suggested.reduce((acc, m) => acc + m.source.amount, 0);
+      sum = suggested.reduce((acc, m) => acc + (m.source?.amount ?? m.target?.amount ?? 0), 0);
     } else if (bucket === "unmatched") {
       label = "Unmatched";
       dotColor = "bg-[var(--red)]";
       count = unmatched.length;
-      sum = unmatched.reduce((acc, m) => acc + m.source.amount, 0);
+      sum = unmatched.reduce((acc, m) => acc + (m.source?.amount ?? m.target?.amount ?? 0), 0);
     } else {
       label = "Auto-matched";
       dotColor = "bg-[var(--royal)]";
       count = matched.length;
-      sum = matched.reduce((acc, m) => acc + m.source.amount, 0);
+      sum = matched.reduce((acc, m) => acc + (m.source?.amount ?? m.target?.amount ?? 0), 0);
     }
 
     return (

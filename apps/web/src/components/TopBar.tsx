@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
-import { NotificationsPanel } from "./NotificationsPanel";
+import { NotificationsPanel } from "@/features/notifications/components/NotificationsPanel";
+import { FirmSelector } from "@/features/firms/FirmSelector";
 import { usePathname } from "next/navigation";
 
 export function TopBar() {
@@ -39,9 +40,12 @@ export function TopBar() {
       {/* Spacer to push everything else to the right */}
       <div className="flex-1"></div>
 
+      <FirmSelector />
+
       {/* Notifications */}
       <div className="relative">
-        <button 
+        <button
+          data-notifications-trigger
           onClick={(e) => {
             e.stopPropagation();
             setIsNotificationsOpen((prev) => !prev);

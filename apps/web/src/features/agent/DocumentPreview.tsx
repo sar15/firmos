@@ -6,7 +6,7 @@ import { Camera } from "lucide-react";
 export function DocumentPreview() {
   return (
     <div className="mt-3.5 bg-[var(--raised)] border border-[var(--hairline)] rounded-[6px] overflow-hidden">
-      <div className="h-[130px] relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#E2E5EB] via-[#C9CDD6] to-[#B4B9C5] dark:from-[#2A323E] dark:to-[#1A212B]">
+      <div className="relative flex h-[130px] items-center justify-center overflow-hidden bg-[var(--inset)]">
         <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')] mix-blend-overlay"></div>
         <div className="relative bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-slate-100 px-3.5 py-2 rounded-[6px] text-[12px] font-medium flex items-center gap-2">
           <Camera className="w-3.5 h-3.5" />

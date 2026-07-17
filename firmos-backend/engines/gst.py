@@ -61,6 +61,33 @@ def calculate_net_gst_payable(
     }
 
 
+def apply_itc_utilization(
+    output_igst_paise: int, output_cgst_paise: int, output_sgst_paise: int,
+    itc_igst_paise: int, itc_cgst_paise: int, itc_sgst_paise: int,
+) -> dict:
+    """Apply section 49 / Rule 88A utilization order component by component."""
+    payable = {"igst": max(0, output_igst_paise), "cgst": max(0, output_cgst_paise), "sgst": max(0, output_sgst_paise)}
+    credit = {"igst": max(0, itc_igst_paise), "cgst": max(0, itc_cgst_paise), "sgst": max(0, itc_sgst_paise)}
+    used = {key: {component: 0 for component in payable} for key in credit}
+
+    def use(credit_component: str, payable_component: str) -> None:
+        amount = min(credit[credit_component], payable[payable_component])
+        credit[credit_component] -= amount
+        payable[payable_component] -= amount
+        used[credit_component][payable_component] += amount
+
+    # IGST credit must be exhausted against IGST and then CGST/SGST before
+    # either CGST or SGST credit is used. The latter allocation is neutral.
+    use("igst", "igst")
+    use("igst", "cgst")
+    use("igst", "sgst")
+    use("cgst", "cgst")
+    use("cgst", "igst")
+    use("sgst", "sgst")
+    use("sgst", "igst")
+    return {"itc_used": used, "cash_payable": payable, "remaining_itc": credit}
+
+
 def check_itc_eligibility(
     supplier_filed: bool,
     invoice_amount_paise: int,
@@ -103,9 +130,11 @@ def generate_gstr3b_tables(
     ineligible_itc_paise: int = 0,
 ) -> dict:
     """Generate exact GST Portal GSTR-3B copy-paste table layout (all cells in paise)."""
-    usable_igst = min(output_igst_paise, itc_igst_paise)
-    usable_cgst = min(output_cgst_paise, itc_cgst_paise)
-    usable_sgst = min(output_sgst_paise, itc_sgst_paise)
+    utilization = apply_itc_utilization(
+        output_igst_paise, output_cgst_paise, output_sgst_paise,
+        itc_igst_paise, itc_cgst_paise, itc_sgst_paise,
+    )
+    used, cash = utilization["itc_used"], utilization["cash_payable"]
 
     return {
         "table_3_1": {
@@ -164,18 +193,18 @@ def generate_gstr3b_tables(
             "payment_of_tax": {
                 "igst": {
                     "payable": output_igst_paise,
-                    "paid_itc": usable_igst,
-                    "paid_cash": max(0, output_igst_paise - usable_igst),
+                    "paid_itc": sum(used[credit]["igst"] for credit in used),
+                    "paid_cash": cash["igst"],
                 },
                 "cgst": {
                     "payable": output_cgst_paise,
-                    "paid_itc": usable_cgst,
-                    "paid_cash": max(0, output_cgst_paise - usable_cgst),
+                    "paid_itc": sum(used[credit]["cgst"] for credit in used),
+                    "paid_cash": cash["cgst"],
                 },
                 "sgst": {
                     "payable": output_sgst_paise,
-                    "paid_itc": usable_sgst,
-                    "paid_cash": max(0, output_sgst_paise - usable_sgst),
+                    "paid_itc": sum(used[credit]["sgst"] for credit in used),
+                    "paid_cash": cash["sgst"],
                 },
             }
         },

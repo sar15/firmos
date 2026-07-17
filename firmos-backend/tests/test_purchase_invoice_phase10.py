@@ -30,6 +30,20 @@ def test_ai_confidence_cannot_hide_tax_and_total_failures():
     assert validation_state(findings) == "FAILED"
 
 
+def test_place_of_supply_normalizes_state_names_and_never_guesses_unknown_text():
+    # Supplier and client are both Maharashtra. The full state name is therefore
+    # intra-state, not a false IGST exception caused by comparing text to "27".
+    normalized = validate_invoice(invoice(
+        client_gstin="27AAPFU0939F1ZV", place_of_supply_state="Maharashtra",
+    ), today=date(2026, 7, 15))
+    assert "IGST_REQUIRED" not in {item["code"] for item in normalized}
+
+    unknown = validate_invoice(invoice(
+        client_gstin="27AAPFU0939F1ZV", place_of_supply_state="Mars Colony",
+    ), today=date(2026, 7, 15))
+    assert "PLACE_OF_SUPPLY_INVALID" in {item["code"] for item in unknown}
+
+
 def test_file_contract_uses_bytes_not_claimed_mime():
     upload = inspect_upload("invoice.pdf", "application/pdf", b"%PDF-1.7\n/Type /Page\n%%EOF")
     assert upload.file_type == "pdf" and upload.page_count == 1

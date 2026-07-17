@@ -45,14 +45,23 @@ async def get_current_firm(request: Request) -> FirmContext:
         raise HTTPException(status_code=401, detail={"code": "INVALID_TOKEN"}) from exc
     if Database.pool is None:
         raise HTTPException(status_code=503, detail={"code": "DATABASE_UNAVAILABLE"})
+    selected_firm_id = request.headers.get("X-FirmOS-Firm", "").strip()
     async with Database.pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """SELECT firm_id, role FROM firm_memberships
-               WHERE user_id=$1::uuid AND status='ACTIVE' ORDER BY created_at LIMIT 1""",
-            claims["sub"],
-        )
+        if selected_firm_id:
+            row = await conn.fetchrow(
+                """SELECT firm_id, role FROM firm_memberships
+                   WHERE user_id=$1::uuid AND firm_id=$2 AND status='ACTIVE'""",
+                claims["sub"], selected_firm_id,
+            )
+        else:
+            row = await conn.fetchrow(
+                """SELECT firm_id, role FROM firm_memberships
+                   WHERE user_id=$1::uuid AND status='ACTIVE' ORDER BY created_at LIMIT 1""",
+                claims["sub"],
+            )
     if not row:
-        raise HTTPException(status_code=403, detail={"code": "FIRM_MEMBERSHIP_REQUIRED"})
+        code = "FIRM_ACCESS_DENIED" if selected_firm_id else "FIRM_MEMBERSHIP_REQUIRED"
+        raise HTTPException(status_code=403, detail={"code": code})
     context = FirmContext(claims["sub"], row["firm_id"], row["role"], claims.get("email", ""))
     request.state.user_id, request.state.firm_id, request.state.role = context.user_id, context.firm_id, context.role
     return context
@@ -62,6 +71,7 @@ class _BorrowedConnection:
     def __init__(self, conn): self.conn = conn
     async def __aenter__(self): return self.conn
     async def __aexit__(self, *_): return None
+    def __getattr__(self, name): return getattr(self.conn, name)
 
 
 class TransactionPool:

@@ -26,7 +26,7 @@ TDS_THRESHOLDS: dict[str, int] = {
     "194I_PLANT": 24000000,
     "194J_TECH": 3000000,  # ₹30,000
     "194J_PROF": 3000000,
-    "194Q": 5000000000,    # ₹50,00,000
+    "194Q": 500000000,     # ₹50,00,000
 }
 
 
@@ -34,10 +34,12 @@ def calculate_tds(
     section: str,
     gross_amount_paise: int,
     pan_available: bool = True,
+    prior_period_amount_paise: int = 0,
+    buyer_prior_year_turnover_paise: int | None = None,
 ) -> dict:
     """Compute TDS for a payment.
     
-    If PAN not available, rate doubles (max 20%).
+    If PAN is not available, section 206AA applies the higher statutory rate.
     Returns dict with tds_amount, net_amount (both in paise).
     """
     if section not in TDS_RATES:
@@ -47,11 +49,32 @@ def calculate_tds(
 
     # Higher rate if PAN not available (section 206AA)
     if not pan_available:
-        rate = min(rate * 2, 20.0)
+        # 194Q has an express 5% substitution; other supported sections use
+        # the 20% statutory floor (or a higher applicable rate).
+        rate = max(rate, 5.0 if section == "194Q" else 20.0)
 
-    # Check threshold
     threshold = TDS_THRESHOLDS.get(section, 0)
-    if gross_amount_paise <= threshold:
+    if section == "194Q":
+        if buyer_prior_year_turnover_paise is None:
+            return {
+                "section": section, "gross_amount": gross_amount_paise,
+                "tds_amount": 0, "net_amount": gross_amount_paise,
+                "needs_context": True,
+                "reason": "Prior-year buyer turnover is required for Section 194Q.",
+            }
+        if buyer_prior_year_turnover_paise <= 10000000000:
+            return {
+                "section": section, "gross_amount": gross_amount_paise,
+                "tds_amount": 0, "net_amount": gross_amount_paise,
+                "reason": "Buyer prior-year turnover does not exceed ₹10 crore.",
+            }
+        prior = max(0, prior_period_amount_paise)
+        cumulative = prior + gross_amount_paise
+        taxable_amount = max(0, cumulative - threshold) - max(0, prior - threshold)
+    else:
+        taxable_amount = gross_amount_paise
+
+    if taxable_amount <= 0 or (section != "194Q" and gross_amount_paise <= threshold):
         return {
             "section": section,
             "gross_amount": gross_amount_paise,
@@ -61,11 +84,12 @@ def calculate_tds(
             "reason": f"Below threshold of ₹{threshold // 100}",
         }
 
-    tds_paise = int(gross_amount_paise * rate / 100)
+    tds_paise = int(taxable_amount * rate / 100)
 
     return {
         "section": section,
         "gross_amount": gross_amount_paise,
+        "taxable_amount": taxable_amount,
         "rate": rate,
         "tds_amount": tds_paise,
         "net_amount": gross_amount_paise - tds_paise,

@@ -1,10 +1,8 @@
-"use client";
-
-import { useParams } from "next/navigation";
 import { ReconcileClient } from "@/features/reconciliation/components/ReconcileClient";
 
-export default function ClientReconciliationPage() {
-  const params = useParams<{ id: string }>();
+const ClientReconciliationPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  return <ReconcileClient clientId={id} />;
+};
 
-  return <ReconcileClient clientId={params.id} />;
-}
+export default ClientReconciliationPage;

@@ -62,8 +62,8 @@ export default function SalesRegisterPage() {
           </div>
         </header>
 
-        <section className={`mt-5 flex items-start gap-3 rounded-lg border px-4 py-3 ${complete ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`} aria-live="polite">
-          {complete ? <ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-700" /> : <TriangleAlert className="mt-0.5 h-5 w-5 text-amber-700" />}
+        <section className={`mt-5 flex items-start gap-3 rounded-[6px] border px-4 py-3 ${complete ? "border-[var(--royal-tint-2)] bg-[var(--royal-tint)]" : "border-[var(--amber-border)] bg-[var(--amber-tint)]"}`} aria-live="polite">
+          {complete ? <ShieldCheck className="mt-0.5 h-5 w-5 text-[var(--royal)]" /> : <TriangleAlert className="mt-0.5 h-5 w-5 text-[var(--amber)]" />}
           <div><p className="text-sm font-medium text-[var(--text)]">{complete ? "Register is complete for this period" : "Completeness needs attention"}</p>
             <p className="mt-0.5 text-xs leading-5 text-[var(--muted)]">{status.message || (complete ? "Provider totals and row counts passed the latest sync." : "Sync the full provider period before using this register for GST workpapers.")}</p></div>
         </section>

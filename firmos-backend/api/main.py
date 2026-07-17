@@ -1,6 +1,7 @@
 """FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
+import os
 import uuid
 
 import sentry_sdk
@@ -110,7 +111,8 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "commit": "3c13e9f"}
+    commit = os.getenv("RAILWAY_GIT_COMMIT_SHA") or os.getenv("GIT_COMMIT_SHA") or "unknown"
+    return {"status": "ok", "commit": commit[:12]}
 
 
 from api.routes import (
@@ -125,6 +127,7 @@ from api.routes import (
     client_mutations,
     clients,
     compute,
+    firms,
     connector_disconnect,
     connector_operations,
     connectors,
@@ -169,6 +172,7 @@ app.include_router(notifications.router)
 app.include_router(workflows.router)
 app.include_router(audit.router)
 app.include_router(compute.router)
+app.include_router(firms.router)
 app.include_router(zoho.router)
 app.include_router(bank_statements.router)
 app.include_router(bank_reconciliation.router)

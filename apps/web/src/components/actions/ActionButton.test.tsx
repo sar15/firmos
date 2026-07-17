@@ -6,7 +6,7 @@ describe("ActionButton", () => {
   it("binds policy metadata and renders success evidence", async () => {
     const mutation = vi.fn().mockResolvedValue({ id: "action-1" });
     render(
-      <ActionButton
+      <ActionButton<{ id: string }>
         capabilityKey="zoho.write.purchase_bill.create"
         requiredPermission="books.approve"
         mutation={mutation}

@@ -23,31 +23,13 @@ export function Gstr3bCell({ label, paise = 0 }: Gstr3bCellProps) {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "8px 12px",
-        borderBottom: "1px solid var(--hairline, rgba(0,0,0,0.06))",
-        fontFamily: "monospace",
-        fontSize: "13px",
-      }}
-    >
-      <span style={{ color: "#4B5563" }}>{label}</span>
-      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-        <span style={{ fontWeight: 600, color: "#111827" }}>₹{valueRupees}</span>
+    <div className="flex items-center justify-between border-b border-[var(--hairline)] px-3 py-2 font-mono text-[13px]">
+      <span className="text-[var(--muted)]">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-[var(--text)]">₹{valueRupees}</span>
         <button
           onClick={handleCopy}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--hairline, rgba(0,0,0,0.12))",
-            borderRadius: "4px",
-            padding: "2px 6px",
-            fontSize: "11px",
-            color: copied ? "var(--royal, #2540D9)" : "#6B7280",
-            cursor: "pointer",
-          }}
+          className={`min-h-8 rounded-[6px] border border-[var(--hairline-2)] bg-transparent px-2 text-[11px] ${copied ? "text-[var(--royal)]" : "text-[var(--muted)]"}`}
         >
           {copied ? "Copied" : "Copy"}
         </button>

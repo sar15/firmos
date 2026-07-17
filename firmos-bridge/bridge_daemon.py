@@ -13,7 +13,7 @@ import os
 import sys
 import json
 import time
-import uuid
+import hashlib
 import logging
 import argparse
 import urllib.request
@@ -44,6 +44,16 @@ class CloudPushError(Exception):
     pass
 
 
+def sync_idempotency_key(payload: Dict[str, Any]) -> str:
+    """Key a Tally snapshot by business content, not collection metadata."""
+    stable_payload = {
+        key: value for key, value in payload.items()
+        if key not in {"timestamp", "collected_at", "sent_at"}
+    }
+    canonical = json.dumps(stable_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def push_to_cloud(
     cloud_url: str,
     api_token: str,
@@ -58,8 +68,9 @@ def push_to_cloud(
     endpoint = cloud_url.rstrip("/") + "/api/tally/push"
     data_bytes = json.dumps(payload).encode("utf-8")
     
-    # Idempotency key prevents duplicate ledger/voucher ingestion if network drops
-    idempotency_key = str(uuid.uuid4())
+    # Collection timestamps change on a replay; business content does not.
+    # Keeping those timestamps out of the key makes retrying a sync safe.
+    idempotency_key = sync_idempotency_key(payload)
     
     headers = {
         "Content-Type": "application/json",

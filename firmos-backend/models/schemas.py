@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Literal, Optional
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # --- Money ---
@@ -133,9 +133,15 @@ class ReconMatch(BaseModel):
     id: str
     status: MatchStatusType
     score: Optional[float] = Field(default=None, ge=0, le=1)
-    source: ReconLine
+    source: Optional[ReconLine] = None
     target: Optional[ReconLine] = None
-    flag: Optional[Literal["SUPPLIER_NOT_FILED", "AMOUNT_MISMATCH", "DATE_DRIFT"]] = None
+    flag: Optional[Literal["SUPPLIER_NOT_FILED", "PORTAL_ENTRY_NOT_IN_BOOKS", "AMOUNT_MISMATCH", "DATE_DRIFT"]] = None
+
+    @model_validator(mode="after")
+    def require_a_reconciliation_side(self):
+        if self.source is None and self.target is None:
+            raise ValueError("A reconciliation match needs a source or target line")
+        return self
 
 
 class ReconciliationSummary(BaseModel):

@@ -17,6 +17,17 @@ router = APIRouter(prefix="/api/tally", tags=["tally"])
 logger = logging.getLogger("api.tally")
 
 
+async def _execute_many(conn, statement: str, rows: list[tuple]) -> None:
+    """Use one asyncpg batch round-trip; test doubles keep the simple fallback."""
+    if not rows:
+        return
+    if hasattr(conn, "executemany"):
+        await conn.executemany(statement, rows)
+        return
+    for row in rows:
+        await conn.execute(statement, *row)
+
+
 class TallyLedgerPayload(BaseModel):
     guid: str = Field(..., description="Canonical Tally GUID or fallback unique identifier")
     name: str = Field(..., description="Ledger account name")
@@ -58,7 +69,7 @@ class TallyPushPayload(BaseModel):
 @router.post("/push", status_code=status.HTTP_200_OK)
 async def push_tally_data(
     payload: TallyPushPayload,
-    x_idempotency_key: str = Header(..., alias="X-Idempotency-Key", description="Unique UUID per push attempt"),
+    x_idempotency_key: str = Header(..., alias="X-Idempotency-Key", description="Stable key for the exact sync payload"),
     firm: FirmContext = Depends(get_current_firm),
     db_pool = Depends(get_db),
 ) -> Dict[str, Any]:
@@ -91,10 +102,8 @@ async def push_tally_data(
                     
         # 2. Execute ingest inside atomic database transaction
         async with conn.transaction():
-            # Upsert ledgers
-            for led in payload.ledgers:
-                await conn.execute(
-                    """
+            # Batch independent upserts to keep the snapshot transaction short.
+            ledger_statement = """
                     INSERT INTO tally_ledgers (
                         firm_id, company_name, tally_guid, name, parent_group,
                         opening_balance, closing_balance, is_revenue, synced_at
@@ -106,16 +115,14 @@ async def push_tally_data(
                         closing_balance = EXCLUDED.closing_balance,
                         is_revenue = EXCLUDED.is_revenue,
                         synced_at = NOW()
-                    """,
-                    firm.firm_id, payload.tally_company, led.guid, led.name, led.parent_group,
-                    led.opening_balance, led.closing_balance, led.is_revenue,
-                )
-                
-            # Upsert vouchers
-            for vch in payload.vouchers:
-                entries_json = json.dumps([e.model_dump() for e in vch.entries])
-                await conn.execute(
                     """
+            await _execute_many(conn, ledger_statement, [
+                (firm.firm_id, payload.tally_company, led.guid, led.name, led.parent_group,
+                 led.opening_balance, led.closing_balance, led.is_revenue)
+                for led in payload.ledgers
+            ])
+
+            voucher_statement = """
                     INSERT INTO tally_vouchers (
                         firm_id, company_name, tally_guid, voucher_number, date,
                         voucher_type, party_name, narration, entries, synced_at
@@ -128,10 +135,13 @@ async def push_tally_data(
                         narration = EXCLUDED.narration,
                         entries = EXCLUDED.entries,
                         synced_at = NOW()
-                    """,
-                    firm.firm_id, payload.tally_company, vch.guid, vch.voucher_number, vch.date,
-                    vch.voucher_type, vch.party_name, vch.narration, entries_json,
-                )
+                    """
+            await _execute_many(conn, voucher_statement, [
+                (firm.firm_id, payload.tally_company, vch.guid, vch.voucher_number, vch.date,
+                 vch.voucher_type, vch.party_name, vch.narration,
+                 json.dumps([entry.model_dump() for entry in vch.entries]))
+                for vch in payload.vouchers
+            ])
                 
             # Record success in idempotency log
             await conn.execute(

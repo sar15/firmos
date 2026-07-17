@@ -17,6 +17,8 @@ class TDSRequest(BaseModel):
     section: str
     gross_amount_paise: int
     pan_available: bool = True
+    prior_period_amount_paise: int = 0
+    buyer_prior_year_turnover_paise: int | None = None
 
 class InterestRequest(BaseModel):
     total_tax_paise: int
@@ -41,6 +43,14 @@ class NetGSTPayableRequest(BaseModel):
     itc_available_paise: int
     itc_eligible_paise: int
 
+class ComponentNetGSTPayableRequest(BaseModel):
+    output_igst_paise: int = 0
+    output_cgst_paise: int = 0
+    output_sgst_paise: int = 0
+    itc_igst_paise: int = 0
+    itc_cgst_paise: int = 0
+    itc_sgst_paise: int = 0
+
 # --- Routes ---
 
 @router.post("/tds")
@@ -53,6 +63,8 @@ def compute_tds(
         section=req.section,
         gross_amount_paise=req.gross_amount_paise,
         pan_available=req.pan_available,
+        prior_period_amount_paise=req.prior_period_amount_paise,
+        buyer_prior_year_turnover_paise=req.buyer_prior_year_turnover_paise,
     )
 
 @router.post("/interest")
@@ -104,7 +116,7 @@ def check_itc(
         tolerance_paise=req.tolerance_paise,
     )
 
-@router.post("/net-gst-payable")
+@router.post("/net-gst-payable", deprecated=True)
 def compute_net_gst(
     req: NetGSTPayableRequest,
     firm: FirmContext = Depends(get_current_firm),
@@ -114,4 +126,16 @@ def compute_net_gst(
         output_gst_paise=req.output_gst_paise,
         itc_available_paise=req.itc_available_paise,
         itc_eligible_paise=req.itc_eligible_paise,
+    )
+
+
+@router.post("/net-gst-payable/components")
+def compute_component_net_gst(
+    req: ComponentNetGSTPayableRequest,
+    firm: FirmContext = Depends(get_current_firm),
+):
+    """Apply statutory component-wise ITC utilization and return cash payable."""
+    return gst.apply_itc_utilization(
+        req.output_igst_paise, req.output_cgst_paise, req.output_sgst_paise,
+        req.itc_igst_paise, req.itc_cgst_paise, req.itc_sgst_paise,
     )

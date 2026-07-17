@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Check, AlertCircle, X, Loader2, ChevronDown } from "lucide-react";
 
-export interface AuditEntry {
+export interface TimelineAuditEntry {
   id: string;
   action: string;
   description: string;
@@ -12,7 +12,7 @@ export interface AuditEntry {
   status?: "done" | "warn" | "err" | "spin";
 }
 
-export function StepCard({ entry }: { entry: AuditEntry }) {
+export function StepCard({ entry }: { entry: TimelineAuditEntry }) {
   const [expanded, setExpanded] = useState(false);
 
   const getIcon = () => {

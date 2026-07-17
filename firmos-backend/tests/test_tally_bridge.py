@@ -23,7 +23,7 @@ from tally_client import (
     TallyConnectionError,
     TallyXmlError,
 )
-from bridge_daemon import push_to_cloud, CloudPushError
+from bridge_daemon import push_to_cloud, CloudPushError, sync_idempotency_key
 
 
 def test_escape_xml_string():
@@ -139,3 +139,9 @@ def test_push_to_cloud_success(mock_urlopen):
     res = push_to_cloud("http://localhost:8000", "dev_token", {"test": "data"})
     assert res["status"] == "ok"
     assert mock_urlopen.called
+
+
+def test_sync_key_ignores_volatile_collection_timestamps():
+    first = {"tally_company": "Acme", "vouchers": [{"guid": "v-1"}], "timestamp": "2026-07-17T10:00:00Z"}
+    replay = first | {"timestamp": "2026-07-17T10:05:00Z", "collected_at": "2026-07-17T10:05:00Z"}
+    assert sync_idempotency_key(first) == sync_idempotency_key(replay)

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def _parse_date(date_str: str) -> str:
     if not date_str:
         return ""
-    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y"):
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d-%b-%Y", "%d-%b-%y"):
         try:
             return datetime.strptime(date_str.strip(), fmt).strftime("%Y-%m-%d")
         except ValueError:

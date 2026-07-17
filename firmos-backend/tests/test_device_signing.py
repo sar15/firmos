@@ -73,6 +73,9 @@ class FakeConnection:
     async def fetchval(self, *_args):
         return self.nonce_result
 
+    async def execute(self, *_args):
+        return "DELETE 0"
+
 
 class FakePool:
     def __init__(self, connection):

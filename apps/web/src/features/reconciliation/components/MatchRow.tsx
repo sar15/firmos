@@ -22,7 +22,7 @@ export function MatchRow({
 }: MatchRowProps) {
   const { source, target, status, score, flag, reasons } = match;
 
-  const renderSide = (line?: ReconLine, isSource?: boolean) => {
+  const renderSide = (line?: ReconLine | null, isSource?: boolean) => {
     if (!line) return (
       <div className="flex-1 flex items-center justify-start px-4 opacity-50 italic text-[13px] text-[var(--muted-2)]">
         No matching record
@@ -114,7 +114,7 @@ export function MatchRow({
           </div>
         )}
 
-        {status === "UNMATCHED" && <span className="text-[11px] text-[var(--muted)]">Review</span>}
+        {status === "UNMATCHED" && <span className="text-[11px] text-[var(--muted)]">{source ? "Review" : "Portal-only entry"}</span>}
 
         {status === "AUTO_MATCHED" && (
           <div className="flex items-center justify-end w-full">

@@ -7,8 +7,8 @@ import { AgentAction, approveAgentAction, cancelAgentAction } from "./agent.api"
 import { PlanPreview } from "./PlanPreview";
 import { RunTimeline } from "./RunTimeline";
 
-const primary = "min-h-11 rounded-lg border border-[var(--royal)] bg-[var(--royal)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--royal-hover)] disabled:cursor-not-allowed disabled:opacity-50";
-const secondary = "min-h-11 rounded-lg border border-[var(--hairline)] bg-white px-4 py-2 text-sm font-medium text-[var(--red)] transition-colors hover:bg-[var(--red-tint)] disabled:cursor-not-allowed disabled:opacity-50";
+const primary = "min-h-11 rounded-[6px] border border-[var(--royal)] bg-[var(--royal)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--royal-hover)] disabled:cursor-not-allowed disabled:opacity-50";
+const secondary = "min-h-11 rounded-[6px] border border-[var(--hairline)] bg-white px-4 py-2 text-sm font-medium text-[var(--red)] transition-colors hover:bg-[var(--red-tint)] disabled:cursor-not-allowed disabled:opacity-50";
 
 export function ApprovalCard({ action, onChanged }: { action: AgentAction; onChanged?: () => void }) {
   const [status, setStatus] = React.useState(action.status);
@@ -18,9 +18,9 @@ export function ApprovalCard({ action, onChanged }: { action: AgentAction; onCha
   if (!awaiting) {
     const complete = status === "SUCCEEDED";
     return (
-      <article className="rounded-xl border border-[var(--hairline)] bg-white p-4">
+      <article className="rounded-[6px] border border-[var(--hairline)] bg-white p-4">
         <div className="flex items-start gap-3">
-          {complete ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-[var(--green)]" /> : <Clock3 className="mt-0.5 h-5 w-5 text-[var(--royal)]" />}
+          {complete ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-[var(--royal)]" /> : <Clock3 className="mt-0.5 h-5 w-5 text-[var(--royal)]" />}
           <div className="min-w-0">
             <p className="text-sm font-semibold text-[var(--text)]">{provider} · {status.replaceAll("_", " ").toLowerCase()}</p>
             <p className="mt-1 text-xs text-[var(--muted)]">{action.operation}</p>
@@ -38,7 +38,7 @@ export function ApprovalCard({ action, onChanged }: { action: AgentAction; onCha
   };
 
   return (
-    <article className="rounded-xl border border-[var(--royal-tint-2)] bg-white p-4 shadow-sm">
+    <article className="rounded-[6px] border border-[var(--royal-tint-2)] bg-white p-4">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--royal)]">Approval required</p>
         <span className="rounded-full bg-[var(--red-tint)] px-2 py-0.5 text-xs font-medium text-[var(--red)]">High-risk write</span>

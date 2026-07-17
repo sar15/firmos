@@ -26,25 +26,17 @@ async def classify_expense_head(
     
     # Attempt to fetch real CoA from Zoho
     if db_pool:
-        async with db_pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT access_token_enc, refresh_token_enc, external_account_id FROM connections WHERE firm_id = $1 AND connector_id = 'c1'",
-                firm.firm_id
-            )
-            if row and row["access_token_enc"]:
-                from core.security import decrypt_token
-                from connectors.zoho_books.client import ZohoClient
-                from connectors.zoho_books.sync import list_accounts
-                
-                access_token = decrypt_token(row["access_token_enc"])
-                client = ZohoClient(access_token, row["refresh_token_enc"], row["external_account_id"])
-                
-                try:
-                    acc_res = await list_accounts(client)
-                    coa_list = acc_res.get("chartofaccounts", [])
-                except Exception as e:
-                    import logging
-                    logging.warning(f"Failed to fetch CoA from Zoho: {e}")
+        from connectors.zoho_books.legacy_credentials import legacy_zoho_client
+        from connectors.zoho_books.sync import list_accounts
+
+        client = await legacy_zoho_client(db_pool, firm.firm_id)
+        if client:
+            try:
+                acc_res = await list_accounts(client)
+                coa_list = acc_res.get("chartofaccounts", [])
+            except Exception:
+                import logging
+                logging.warning("Failed to fetch CoA from Zoho")
                     
     head = "General Expenses"
     account_id = None

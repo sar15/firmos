@@ -8,6 +8,24 @@ from decimal import Decimal, InvalidOperation
 GSTIN = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 PAN = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
 GST_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+GST_STATE_CODES = {
+    "JAMMU AND KASHMIR": "01", "HIMACHAL PRADESH": "02", "PUNJAB": "03", "CHANDIGARH": "04",
+    "UTTARAKHAND": "05", "HARYANA": "06", "DELHI": "07", "RAJASTHAN": "08", "UTTAR PRADESH": "09",
+    "BIHAR": "10", "SIKKIM": "11", "ARUNACHAL PRADESH": "12", "NAGALAND": "13", "MANIPUR": "14",
+    "MIZORAM": "15", "TRIPURA": "16", "MEGHALAYA": "17", "ASSAM": "18", "WEST BENGAL": "19",
+    "JHARKHAND": "20", "ODISHA": "21", "CHHATTISGARH": "22", "MADHYA PRADESH": "23", "GUJARAT": "24",
+    "DADRA AND NAGAR HAVELI AND DAMAN AND DIU": "26", "MAHARASHTRA": "27", "KARNATAKA": "29",
+    "GOA": "30", "LAKSHADWEEP": "31", "KERALA": "32", "TAMIL NADU": "33", "PUDUCHERRY": "34",
+    "ANDAMAN AND NICOBAR ISLANDS": "35", "TELANGANA": "36", "ANDHRA PRADESH": "37", "LADAKH": "38",
+}
+GST_STATE_ABBREVIATIONS = {
+    "JK": "01", "HP": "02", "PB": "03", "CH": "04", "UK": "05", "HR": "06", "DL": "07", "RJ": "08",
+    "UP": "09", "BR": "10", "SK": "11", "AR": "12", "NL": "13", "MN": "14", "MZ": "15", "TR": "16",
+    "ML": "17", "AS": "18", "WB": "19", "JH": "20", "OD": "21", "CG": "22", "MP": "23", "GJ": "24",
+    "DN": "26", "MH": "27", "KA": "29", "GA": "30", "LD": "31", "KL": "32", "TN": "33", "PY": "34",
+    "AN": "35", "TS": "36", "AP": "37", "LA": "38",
+}
+GST_STATE_CODE_VALUES = frozenset(GST_STATE_CODES.values())
 
 
 def _finding(code: str, message: str, field: str = "", severity: str = "ERROR", **details) -> dict:
@@ -57,6 +75,17 @@ def _invoice_date(value: object) -> date | None:
     return None
 
 
+def _gst_state_code(value: object) -> str | None:
+    """Normalize a GST state code, postal abbreviation, or full state name."""
+    text = str(value or "").strip().upper()
+    if text.isdigit() and len(text) <= 2:
+        candidate = text.zfill(2)
+        return candidate if candidate in GST_STATE_CODE_VALUES else None
+    normalized = re.sub(r"[^A-Z]", " ", text)
+    normalized = " ".join(normalized.split())
+    return GST_STATE_ABBREVIATIONS.get(text) or GST_STATE_CODES.get(normalized)
+
+
 def _money(data: dict, key: str) -> int:
     value = data.get(key, 0)
     if isinstance(value, bool):
@@ -104,11 +133,23 @@ def validate_invoice(data: dict, *, tolerance_paise: int = 100, today: date | No
     if igst and (cgst or sgst):
         findings.append(_finding("MIXED_GST_COMPONENTS", "Use IGST or CGST/SGST for one tax treatment, not both.", "igst"))
     if supplier_gstin and client_gstin:
-        interstate = supplier_gstin[:2] != str(data.get("place_of_supply_state") or client_gstin[:2]).zfill(2)
-        if interstate and not igst:
-            findings.append(_finding("IGST_REQUIRED", "Interstate supply normally requires IGST.", "igst"))
-        if not interstate and igst:
-            findings.append(_finding("CGST_SGST_REQUIRED", "Intrastate supply normally requires CGST and SGST.", "igst"))
+        supplied_state = data.get("place_of_supply_state")
+        if str(supplied_state or "").strip():
+            supply_state = _gst_state_code(supplied_state)
+            if not supply_state:
+                findings.append(_finding(
+                    "PLACE_OF_SUPPLY_INVALID",
+                    "Use a recognised GST state name, abbreviation, or two-digit GST state code.",
+                    "placeOfSupplyState",
+                ))
+        else:
+            supply_state = client_gstin[:2]
+        if supply_state:
+            interstate = supplier_gstin[:2] != supply_state
+            if interstate and not igst:
+                findings.append(_finding("IGST_REQUIRED", "Interstate supply normally requires IGST.", "igst"))
+            if not interstate and igst:
+                findings.append(_finding("CGST_SGST_REQUIRED", "Intrastate supply normally requires CGST and SGST.", "igst"))
 
     lines = data.get("line_items") or []
     if not isinstance(lines, list) or not lines:

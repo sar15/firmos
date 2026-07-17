@@ -31,7 +31,7 @@ def test_gst_summary_endpoint():
     from api.deps import get_db
     app.dependency_overrides[get_db] = lambda: MockPool()
 
-    with patch("core.security.decrypt_token", return_value="dummy_token"):
+    with patch("connectors.zoho_books.legacy_credentials.decrypt_token", return_value="dummy_token"):
         with patch("connectors.zoho_books.sync.list_invoices_by_period", return_value={"invoices": [{"tax_total": 500}]}):
             with patch("api.routes.reconciliation.get_reconciliation") as mock_recon:
                 class MockSummary:
@@ -69,6 +69,22 @@ def test_gstr3b_table_generation():
     t4 = tables["table_4"]["A_itc_available"]["5_all_other_itc"]
     assert t4["camt"] == 50000
     assert t4["samt"] == 50000
+
+
+def test_gstr3b_uses_igst_credit_against_cgst_then_sgst_before_cash():
+    from engines.gst import generate_gstr3b_tables
+    tables = generate_gstr3b_tables(
+        output_taxable_paise=0,
+        output_igst_paise=0,
+        output_cgst_paise=100000,
+        output_sgst_paise=100000,
+        itc_igst_paise=150000,
+        itc_cgst_paise=0,
+        itc_sgst_paise=0,
+    )
+    payment = tables["table_6_1"]["payment_of_tax"]
+    assert payment["cgst"] == {"payable": 100000, "paid_itc": 100000, "paid_cash": 0}
+    assert payment["sgst"] == {"payable": 100000, "paid_itc": 50000, "paid_cash": 50000}
 
 
 def test_export_gstr3b_gstn_json():
