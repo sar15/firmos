@@ -29,7 +29,7 @@ class Client(BaseModel):
     state: str
     booksProvider: Optional[Literal["ZOHO_BOOKS", "TALLY", "QUICKBOOKS", "CSV", "NONE"]] = None
     nextDue: str  # ISO date string
-    complianceStatus: Literal["ON_TRACK", "DUE_SOON", "OVERDUE"]
+    complianceStatus: Literal["ON_TRACK", "DUE_SOON", "OVERDUE", "READY"]
 
 
 # --- Decision ---

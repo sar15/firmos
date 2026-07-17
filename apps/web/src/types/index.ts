@@ -15,7 +15,7 @@ export const ClientSchema = z.object({
   state: z.string(),
   booksProvider: z.enum(["ZOHO_BOOKS", "TALLY", "QUICKBOOKS", "CSV", "NONE"]).nullable(),
   nextDue: z.string(),
-  complianceStatus: z.enum(["ON_TRACK", "DUE_SOON", "OVERDUE"]),
+  complianceStatus: z.enum(["ON_TRACK", "DUE_SOON", "OVERDUE", "READY"]),
 });
 export type Client = z.infer<typeof ClientSchema>;
 
