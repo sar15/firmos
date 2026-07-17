@@ -256,7 +256,7 @@ export function ConnectorsClient() {
                           <div className="flex items-center">
                             {item.status === "NEEDS_ATTENTION" ? (
                               <span className="text-[12px] text-[var(--amber)] mono font-medium">Needs attention</span>
-                            ) : item.lastSyncedAt ? (
+                            ) : (item.lastSyncedAt && !isNaN(new Date(item.lastSyncedAt).getTime())) ? (
                               <span className="text-[12px] text-[var(--royal)] mono">Last synced {new Date(item.lastSyncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             ) : (
                               <span className="text-[12px] text-[var(--royal)] mono">Connected</span>

@@ -90,6 +90,31 @@ async def typed_error(request: Request, exc: AppError):
     )
 
 
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    import structlog
+    log = structlog.get_logger()
+    log.error("request_validation_error", errors=exc.errors(), body=exc.body)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": str(exc.body)},
+    )
+
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    import structlog
+    log = structlog.get_logger()
+    log.error("unhandled_exception", error=str(exc), traceback=traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+    )
+
 @app.exception_handler(StoredCredentialError)
 async def stored_credential_error(_request: Request, _exc: StoredCredentialError):
     return JSONResponse(
