@@ -111,7 +111,9 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    commit = os.getenv("RAILWAY_GIT_COMMIT_SHA") or os.getenv("GIT_COMMIT_SHA") or "unknown"
+    commit = (
+        os.getenv("RAILWAY_GIT_COMMIT_SHA") or os.getenv("GIT_COMMIT_SHA") or "unknown"
+    )
     return {"status": "ok", "commit": commit[:12]}
 
 
